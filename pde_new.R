@@ -158,7 +158,8 @@ for (n in seq_len(steps)) {
       # ST source integrated over the neighbour's infection age.
       st_source <- alpha*sum(SI[k,j,])*da+
                    delta_p*(j-1)*sum(SI[k,j,]*PT[j,])*da
-      st_loss <- beta*(k-1)*Lambda[k]
+      # The traced neighbour triggers its episode and enters X at rate delta.
+      st_loss <- delta+beta*(k-1)*Lambda[k]
       ST_new[k,j] <- exponential_source(ST[k,j],st_loss,st_source,dt)
 
       II_new[k,j,next_age,next_age] <- pair[old,old]*

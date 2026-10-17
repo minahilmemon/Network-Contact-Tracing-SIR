@@ -2,7 +2,7 @@
 # NONLINEAR AGE-STRUCTURED NETWORK PDE
 # WITH CONTACT TRACING
 #
-# GOLD-STANDARD probability equations; projection factors removed
+# Probability-equation solver with uniform age-cell integration
 #
 # R_kj(t,a) = P_{I_j}^{S_k}(t,a) / Lambda_k(t)
 #
@@ -52,49 +52,21 @@ da <- 1.0
 t_max <- 200
 a_max <- 30
 
-times <- seq(
-  0,
-  t_max,
-  by = dt
-)
-
-ages <- seq(
-  0,
-  a_max,
-  by = da
-)
-
+# Densities are cell averages on [m*da, (m+1)*da], not nodal
+# values to be integrated with Simpson weights. A cohort keeps the same
+# quadrature weight as it moves between age cells. Boundary densities
+# are used as first-order estimates of the incoming cell averages.
+stopifnot(dt > 0, abs(dt-da) < 1e-12, a_max >= 2*da, t_max > 0)
+Na <- ceiling(a_max/da)
+a_max <- Na*da
+ages <- (seq_len(Na)-0.5)*da
+times <- (0:ceiling(t_max/dt))*dt
 Nt <- length(times)
-Na <- length(ages)
 
-
-# ==============================================================
-# COMPOSITE SIMPSON RULE FOR AGE INTEGRALS
-# ==============================================================
-# The age grid is uniform. Composite Simpson's rule requires an
-# even number of subintervals. With a_max = 30 and da = 0.2,
-# there are 150 subintervals, so the rule applies exactly.
-
-simpson_age <- function(y, h = da) {
-  n_intervals <- length(y) - 1
-
-  if (n_intervals < 2) {
-    stop("Simpson's rule requires at least two subintervals.")
-  }
-
-  if (n_intervals %% 2 != 0) {
-    stop("Simpson's rule requires an even number of subintervals.")
-  }
-
-  odd_sum <- sum(y[seq(2, length(y) - 1, by = 2)])
-  even_sum <- sum(y[seq(3, length(y) - 2, by = 2)])
-
-  (h / 3) * (
-    y[1] +
-      y[length(y)] +
-      4 * odd_sum +
-      2 * even_sum
-  )
+# The legacy filename is retained, but Simpson integration is no longer
+# used: alternating nodal weights do not conserve transported seed mass.
+integrate_age <- function(y, h = da) {
+  h * sum(y)
 }
 
 
@@ -166,7 +138,7 @@ I_age <- matrix(
   ncol = Na
 )
 
-# Initially the infected seeds are placed at infection age 0.
+# Place the seed mass in the first age cell [0, da].
 
 I_age[, 1] <- I0 * pk / da
 
@@ -325,13 +297,12 @@ for (ik in 1:K) {
 
 I_total <- numeric(Nt)
 
-# At t = 0 the infected seeds are represented as a point mass at
-# age zero (I0 * pk / da), not as a smooth age density. Therefore
-# initialize the total directly rather than applying Simpson's rule
-# to that discrete point mass.
-I_total[1] <-
-  I0 * sum(pk) +
-  I_zero_0
+# Use the same cell integration at initialization and subsequent times.
+I_total[1] <- sum(apply(I_age, 1, integrate_age)) + I_zero_0
+stopifnot(abs(I_total[1] - I0) < 1e-10)
+for (ik in seq_len(K)) {
+  stopifnot(abs(sum(apply(R[ik, , ], 1, integrate_age)) - 1) < 1e-12)
+}
 
 
 Lambda_history <- matrix(
@@ -351,7 +322,7 @@ Lambda_history[1, ] <- Lambda
 
 cat("\n")
 cat("============================================\n")
-cat("Starting GOLD-STANDARD nonlinear PDE simulation (dt=da=0.2, Simpson age integration)\n")
+cat(sprintf("Starting probability PDE simulation (dt=da=%.3g, uniform age-cell integration)\n", dt))
 cat("============================================\n\n")
 
 
@@ -439,7 +410,7 @@ for (n in 1:(Nt - 1)) {
         apply(
           temp,
           1,
-          simpson_age
+          integrate_age
         )
       
     }
@@ -612,7 +583,7 @@ for (n in 1:(Nt - 1)) {
       
       
       integral_R <-
-        simpson_age(
+        integrate_age(
           R[
             ik,
             jj,
@@ -622,7 +593,7 @@ for (n in 1:(Nt - 1)) {
       
       
       tracing_average <-
-        simpson_age(
+        integrate_age(
           R[
             ik,
             jj,
@@ -635,31 +606,19 @@ for (n in 1:(Nt - 1)) {
         )
       
       
-      rhs <-
-        alpha *
-        Lambda[ik] *
-        integral_R +
-        delta_p *
-        (j - 1) *
-        Lambda[ik] *
-        tracing_average +
-        beta *
-        PST[
-          ik,
-          jj
-        ] *
-        Lambda[ik]
-      
-      
-      PST_new[
-        ik,
-        jj
-      ] <-
-        PST[
-          ik,
-          jj
-        ] +
-        dt * rhs
+      # Frozen-coefficient update of Eq. (14). The traced neighbour
+      # enters X at rate delta, even when no infected neighbours remain.
+      pst_source <- alpha * Lambda[ik] * integral_R +
+        delta_p * (j - 1) * Lambda[ik] * tracing_average
+      pst_rate <- beta * Lambda[ik] - delta
+      pst_phi <- if (abs(pst_rate * dt) > 1e-8) {
+        expm1(pst_rate * dt) / pst_rate
+      } else {
+        dt
+      }
+      PST_new[ik, jj] <- PST[ik, jj] * exp(pst_rate * dt) +
+        pst_source * pst_phi
+
       
     }
     
@@ -722,7 +681,7 @@ for (n in 1:(Nt - 1)) {
       tracing_average <-
         tracing_average +
         (j - 1) *
-        simpson_age(
+        integrate_age(
           R[
             ik,
             jj,
@@ -1127,7 +1086,7 @@ for (n in 1:(Nt - 1)) {
       tracing_creation <- numeric(Na)
       for (a1 in 1:Na) {
         tracing_creation[a1] <-
-          simpson_age(
+          integrate_age(
             PII[ik, jj, a1, ] *
               PT_total[jj, ]
           )
@@ -1267,7 +1226,7 @@ for (n in 1:(Nt - 1)) {
       apply(
         I_age,
         1,
-        simpson_age
+        integrate_age
       )
     ) +
     I_zero
