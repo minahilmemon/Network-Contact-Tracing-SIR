@@ -20,21 +20,40 @@ I0 <- 20
 mean_degree <- 5
 Kmax <- 20
 
-dt <- 0.4
-da <- 0.4
+dt <- 0.1
+da <- 0.1
 t_max <- 200
 a_max <- 60
 
-# Optional command-line smoke tests:
-# Rscript pde_contact_tracing_dt0.6_corrected.R --tmax=3 --amax=12
+# The compiled engine avoids copying two-age slices and large temporary arrays.
+# Use --engine=R for the original numerical implementation as a reference.
+engine <- "auto"
+# Example: Rscript pde_new.R --dt=0.1 --tmax=3 --amax=12 --engine=cpp
 args <- commandArgs(trailingOnly = TRUE)
 for (arg in args) {
   if (startsWith(arg, '--tmax=')) t_max <- as.numeric(sub('--tmax=', '', arg))
   if (startsWith(arg, '--amax=')) a_max <- as.numeric(sub('--amax=', '', arg))
+  if (startsWith(arg, '--dt=')) dt <- da <- as.numeric(sub('--dt=', '', arg))
+  if (startsWith(arg, '--engine=')) engine <- sub('--engine=', '', arg)
 }
 stopifnot(dt > 0, abs(dt-da) < 1e-12, a_max >= 2*da,
           t_max > 0, beta > 0, alpha >= 0, gamma >= 0,
           delta >= 0, p >= 0, p <= 1, I0 > 0, I0 < N)
+stopifnot(engine %in% c("auto", "R", "cpp"))
+use_cpp <- engine == "cpp" || (engine == "auto" && requireNamespace("Rcpp", quietly=TRUE))
+if (use_cpp) {
+  if (!requireNamespace("Rcpp", quietly=TRUE)) stop("The cpp engine requires Rcpp.")
+  # Resolve the companion source for Rscript, source(), or the test harness.
+  script_files <- sub("^--file=", "", grep("^--file=", commandArgs(), value=TRUE))
+  source_files <- unlist(lapply(sys.frames(), function(frame) frame$ofile))
+  candidate_dirs <- unique(c(dirname(c(script_files, source_files)),
+                             dirname(dirname(script_files)), getwd()))
+  candidates <- file.path(candidate_dirs, "pde_ii.cpp")
+  candidates <- candidates[file.exists(candidates)]
+  if (!length(candidates)) stop("Cannot find pde_ii.cpp beside the solver.")
+  cpp <- new.env()
+  Rcpp::sourceCpp(normalizePath(candidates[1]), env=cpp, showOutput=FALSE)
+}
 A <- ceiling(a_max/da)
 a_max <- A*da
 ages <- ((seq_len(A))-0.5)*da
@@ -98,8 +117,8 @@ symmetry_SS <- 0
 symmetry_II <- 0
 age_outflow <- 0
 started <- proc.time()[3]
-cat(sprintf('Running dt=da=%.2f, %d age cells, %d degree classes, %d steps.\n',
-            dt,A,K,steps))
+cat(sprintf('Running dt=da=%.2f, %d age cells, %d degree classes, %d steps (%s engine).\n',
+            dt,A,K,steps,if (use_cpp) 'cpp' else 'R'))
 
 for (n in seq_len(steps)) {
   PT <- conditional_PT(IT,I)
@@ -132,13 +151,20 @@ for (n in seq_len(steps)) {
   SS_new <- SS*exp(-SS_loss*dt)
   SI_new <- array(0,c(K,K,A))
   IT_new <- array(0,c(K,K,A))
-  II_new <- array(0,c(K,K,A,A))
+  if (!use_cpp) II_new <- array(0,c(K,K,A,A))
   ST_new <- matrix(0,K,K)
   # SI inflow: infection of the neighbour by another neighbour.
   SI_in <- sweep(SS_mid,2,beta*(ks-1)*Lambda,'*')
 
   ii_surv <- exp(-delta_p*((ks-1)*PT)*dt/2)
   ii_common <- exp(-(alpha+gamma)*dt)
+  if (use_cpp) {
+    # Initially only age cell 1 is occupied; unit-speed transport grows the
+    # occupied range by one cell per step. No nonzero density is discarded.
+    pair_update <- cpp$pde_ii_step(II,SI,PT,Lambda,SI_in,ii_surv,
+                                  ii_common,beta,alpha,gamma,delta_p,dt,da,min(n,A))
+    II_new <- pair_update$II
+  }
   for (k in ks) {
     for (j in ks) {
       si_loss <- beta+alpha+gamma+delta_p*(j-1)*PT[j,]+
@@ -148,9 +174,14 @@ for (n in seq_len(steps)) {
 
       # W and Q are integrals of edge densities here; division by
       # k I is implicit when reconstructing probability equations.
-      pair <- II[k,j,,]
-      W_edges <- rowSums(pair)*da
-      Q_edges <- as.vector(pair %*% PT[j,])*da
+      if (use_cpp) {
+        W_edges <- pair_update$W[k,j,]
+        Q_edges <- pair_update$Q[k,j,]
+      } else {
+        pair <- II[k,j,,]
+        W_edges <- rowSums(pair)*da
+        Q_edges <- as.vector(pair %*% PT[j,])*da
+      }
       it_source <- alpha*W_edges+delta_p*(j-1)*Q_edges
       it_loss <- delta+alpha+gamma+delta_p*(k-1)*PT[k,]
       IT_new[k,j,next_age] <- exponential_source(
@@ -162,24 +193,26 @@ for (n in seq_len(steps)) {
       st_loss <- delta+beta*(k-1)*Lambda[k]
       ST_new[k,j] <- exponential_source(ST[k,j],st_loss,st_source,dt)
 
-      II_new[k,j,next_age,next_age] <- pair[old,old]*
-        (ii_common^2)*outer(ii_surv[k,old]^2,ii_surv[j,old]^2)
-      # Midpoint estimates for the two incoming face strips. EIS[k,j]
-      # equals SI[j,k] by undirected edge symmetry.
-      si_reverse_loss <- beta+alpha+gamma+delta_p*(k-1)*PT[k,]+
-                         beta*(j-1)*Lambda[j]
-      factor_k <- beta*(1+(k-1)*Lambda[k])
-      factor_j <- beta*(1+(j-1)*Lambda[j])
-      II_new[k,j,1,next_age] <- factor_k*SI[k,j,old]*
-        exp(-si_loss[old]*dt/2)*ii_common*ii_surv[k,1]*ii_surv[j,old]
-      II_new[k,j,next_age,1] <- factor_j*SI[j,k,old]*
-        exp(-si_reverse_loss[old]*dt/2)*ii_common*ii_surv[k,old]*ii_surv[j,1]
-      # The corner is a cell average, not a shared boundary node.
-      # Each face occupies half the corner cell under unit-speed
-      # diagonal transport; both contributions are included once.
-      II_new[k,j,1,1] <- 0.5*(factor_k*SI_in[k,j]+
-                               factor_j*SI_in[j,k])*
-                          ii_common*ii_surv[k,1]*ii_surv[j,1]
+      if (!use_cpp) {
+        II_new[k,j,next_age,next_age] <- pair[old,old]*
+          (ii_common^2)*outer(ii_surv[k,old]^2,ii_surv[j,old]^2)
+        # Midpoint estimates for the two incoming face strips. EIS[k,j]
+        # equals SI[j,k] by undirected edge symmetry.
+        si_reverse_loss <- beta+alpha+gamma+delta_p*(k-1)*PT[k,]+
+                           beta*(j-1)*Lambda[j]
+        factor_k <- beta*(1+(k-1)*Lambda[k])
+        factor_j <- beta*(1+(j-1)*Lambda[j])
+        II_new[k,j,1,next_age] <- factor_k*SI[k,j,old]*
+          exp(-si_loss[old]*dt/2)*ii_common*ii_surv[k,1]*ii_surv[j,old]
+        II_new[k,j,next_age,1] <- factor_j*SI[j,k,old]*
+          exp(-si_reverse_loss[old]*dt/2)*ii_common*ii_surv[k,old]*ii_surv[j,1]
+        # The corner is a cell average, not a shared boundary node.
+        # Each face occupies half the corner cell under unit-speed
+        # diagonal transport; both contributions are included once.
+        II_new[k,j,1,1] <- 0.5*(factor_k*SI_in[k,j]+
+                                 factor_j*SI_in[j,k])*
+                            ii_common*ii_surv[k,1]*ii_surv[j,1]
+      }
     }
   }
   # Boundary IT comes from infection of the S endpoint of ST.
@@ -190,7 +223,10 @@ for (n in seq_len(steps)) {
                    incidence_avg[k]*exp(-node_loss[k,1]*dt/2)
   }
 
-  state_arrays <- list(S_new,I_new,SS_new,ST_new,SI_new,IT_new,II_new)
+  state_arrays <- list(S_new,I_new,SS_new,ST_new,SI_new,IT_new)
+  # The cpp kernel validates II while updating it, without allocating huge
+  # temporary logical arrays for a second scan of the four-dimensional state.
+  if (!use_cpp) state_arrays <- c(state_arrays,list(II_new))
   if (any(vapply(state_arrays,function(x) any(!is.finite(x)) || any(x<0),logical(1))))
     stop(sprintf('Nonfinite or negative state at t=%.3f.',times[n+1]))
   S <- S_new; I <- I_new; SS <- SS_new; ST <- ST_new
@@ -208,19 +244,20 @@ for (n in seq_len(steps)) {
 # Final diagnostics; no post-hoc probability projection is performed.
 max_PT <- max(max_PT,conditional_PT(IT,I))
 symmetry_SS <- max(abs(SS-t(SS)))/max(1,max(SS))
-symmetry_II <- max(abs(II-aperm(II,c(2,1,4,3))))/max(1,max(II))
+symmetry_II <- if (use_cpp) cpp$pde_ii_symmetry(II) else
+  max(abs(II-aperm(II,c(2,1,4,3))))/max(1,max(II))
 results <- data.frame(t=times,I_PDE=I_total,S_PDE=S_total)
 # Outputs are saved next to the script when run with Rscript, otherwise
 # in the current working directory (for example when sourced in RStudio).
 script_arg <- grep('^--file=',commandArgs(),value=TRUE)
 out_dir <- if(length(script_arg)) dirname(normalizePath(sub('^--file=','',script_arg[1]))) else getwd()
-prefix <- file.path(out_dir,'PDE_contact_tracing_dt0.6')
+prefix <- file.path(out_dir,paste0('PDE_contact_tracing_dt',format(dt,trim=TRUE,scientific=FALSE)))
 write.csv(results,paste0(prefix,'.csv'),row.names=FALSE)
 plot_result <- function() {
   plot(times,I_total,type='l',lwd=2,col='#166678',
        xlab='Time',ylab='Number infectious',
        main=sprintf('Contact-tracing PDE: exploratory grid dt = da = %.1f',dt))
-  abm_file <- file.path(out_dir,'It_p030.csv')
+  abm_file <- file.path(out_dir,'It_p030_all_neighbors.csv')
   if(file.exists(abm_file)) {
     abm <- read.csv(abm_file)
     if('t' %in% names(abm) && ncol(abm)>1) {

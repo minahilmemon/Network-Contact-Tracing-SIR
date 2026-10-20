@@ -1323,14 +1323,14 @@ plot(
 
 if (
   file.exists(
-    "It_p030.csv"
+    "It_p030_all_neighbors.csv"
   )
 ) {
   
   
   abm <-
     read.csv(
-      "It_p030.csv"
+      "It_p030_all_neighbors.csv"
     )
   
   
@@ -1421,7 +1421,7 @@ if (
   
   cat("\n")
   cat(
-    "It.csv was not found.\n"
+    "It_p030_all_neighbors.csv was not found.\n"
   )
   
   cat(
