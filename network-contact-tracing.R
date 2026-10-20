@@ -1,5 +1,8 @@
-if (!requireNamespace("ABM", quietly = TRUE)) {
-  stop("Install the ABM package before running this simulation.")
+if (!requireNamespace("ABM", quietly = TRUE) ||
+    utils::packageVersion("ABM") < "0.6.100") {
+  stop("ABM >= 0.6.100 is required. Install the latest GitHub version with:\n",
+       "  remotes::install_github(\"junlingm/ABM\")",
+       call. = FALSE)
 }
 
 # Contact tracing for an SIR epidemic on a static contact network.
