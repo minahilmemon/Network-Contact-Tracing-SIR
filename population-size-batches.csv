@@ -1,0 +1,2 @@
+"file","summary_file","N","I0","initial_infectious_fraction","runs","mean_degree","beta","gamma","tau","theta","p","first_time","last_time","observation_interval","first_seed","seed_increment","ABM_version","ABM_commit","model_source_md5"
+"It_p030_all_neighbors-N1000000-I0_200-100.csv","It_p030_all_neighbors-N1000000-I0_200-100-summary.csv",1000000,200,2e-04,100,5,0.1,0.1,0.15,1,0.3,0,200,1,20261021,1,"0.6.100","4a4275128ee9a3f964fffd656d952684cafdfc32","60cecd8a302aa572e1768dbcc3f7f41c"
