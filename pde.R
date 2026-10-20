@@ -28,7 +28,7 @@ a_max <- 60
 # The compiled engine avoids copying two-age slices and large temporary arrays.
 # Use --engine=R for the original numerical implementation as a reference.
 engine <- "auto"
-# Example: Rscript pde_new.R --dt=0.1 --tmax=3 --amax=12 --engine=cpp
+# Example: Rscript pde.R --dt=0.1 --tmax=3 --amax=12 --engine=cpp
 args <- commandArgs(trailingOnly = TRUE)
 for (arg in args) {
   if (startsWith(arg, '--tmax=')) t_max <- as.numeric(sub('--tmax=', '', arg))

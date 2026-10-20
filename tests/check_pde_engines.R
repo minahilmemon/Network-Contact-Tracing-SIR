@@ -41,7 +41,7 @@ cat('PASS dense kernel, both incoming faces, corner, weighted integrals and symm
 
 initialize <- function(engine, config=list()) {
   overrides <- modifyList(list(engine=engine,dt=.2,da=.2,t_max=2,a_max=2,Kmax=4,mean_degree=2),config)
-  exprs <- parse(file.path(root,'pde_new.R'))
+  exprs <- parse(file.path(root,'pde.R'))
   loop <- which(vapply(exprs,function(x) is.call(x) && identical(x[[1]],as.name('for')) && identical(x[[2]],as.name('n')),logical(1)))
   stopifnot(length(loop)==1)
   e <- new.env(parent=globalenv())
