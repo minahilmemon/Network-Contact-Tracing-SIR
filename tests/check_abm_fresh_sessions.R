@@ -23,6 +23,12 @@ check_fresh_sessions <- function() {
             identical(lapply(first, `[[`, "draw"), lapply(second, `[[`, "draw")),
             identical(class(future::plan()), class(original_plan)))
 
+  # With no seed list, fresh workers initialize distinct RNG streams.
+  unseeded <- run_contact_tracing_replicates(
+    list(), 0L, 0, runs = 4L, workers = 2L)
+  stopifnot(length(unique(vapply(unseeded, `[[`, integer(1), "pid"))) == 4L,
+            length(unique(vapply(unseeded, `[[`, numeric(1), "draw"))) == 4L)
+
   results <- run_contact_tracing_replicates(
     list(), -1L, 0, runs = 4L, workers = 2L, seeds = seeds)
   stopifnot(length(results) == 4L,
@@ -46,5 +52,5 @@ check_fresh_sessions <- function() {
 }
 
 check_fresh_sessions()
-cat("PASS: fresh sessions at one/two workers, seed reproducibility, isolated\n",
+cat("PASS: fresh sessions at one/two workers, independent unseeded RNG, seed reproducibility, isolated\n",
     "      errors, restored future plan, and seeded ABM equivalence.\n")

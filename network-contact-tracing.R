@@ -26,9 +26,8 @@ add_contact_tracing_transitions <- function(sim, network, gamma, tau, theta, p) 
     "I" + "S" -> "I" + "I" ~ "network",
     logging = list(ABM::inc("I"))
   )
-  # A process-wide callback key must distinguish independent simulations.
-  # Use a small explicit environment so the registry can release the graph
-  # after a replicate, rather than retaining the whole simulation forever.
+  # Keep the callback environment small so its graph references can be
+  # released explicitly when this simulation finishes.
   context <- list2env(list(sim = sim, network = network, p = p), parent = baseenv())
   trace_neighbors <- function(time, agent) {
     # The source is already X. Trace all infected network neighbours,
@@ -44,8 +43,12 @@ add_contact_tracing_transitions <- function(sim, network, gamma, tau, theta, p) 
     }
   }
   environment(trace_neighbors) <- context
-  trace_neighbors <- ABM::registerRFunction(
-    trace_neighbors, name = tempfile("network-contact-tracing-"))
+  # Main-branch ABM accepts callbacks directly. Builds with a callback
+  # registry additionally need a distinct key for each simulation.
+  if ("registerRFunction" %in% getNamespaceExports("ABM")) {
+    trace_neighbors <- ABM::registerRFunction(
+      trace_neighbors, name = tempfile("network-contact-tracing-"))
+  }
   sim$addTransition(
     "T" -> "X", theta, changed_callback = trace_neighbors,
     logging = list(ABM::dec("T"))
@@ -63,7 +66,8 @@ add_contact_tracing_transitions <- function(sim, network, gamma, tau, theta, p) 
 #'   completion rate; and `p` is the probability that an infected network
 #'   neighbour is successfully traced during a tracing episode.
 #' @param I0 The number infectious at time zero.
-#' @param times A nondecreasing numeric vector of observation times.
+#' @param times A nonnegative, nondecreasing numeric vector of observation
+#'   times, measured from the initial infection at time zero.
 #'
 #' @return A named numeric vector containing I(t) at the requested time points.
 network_contact_tracing <- function(parameters, I0, times) {
@@ -77,8 +81,8 @@ network_contact_tracing <- function(parameters, I0, times) {
     I0 <- as.integer(I0)
 
     if (!is.numeric(times) || length(times) == 0L || any(!is.finite(times)) ||
-        any(diff(times) < 0)) {
-      stop("times must be a nonempty, nondecreasing finite numeric vector",
+        any(times < 0) || any(diff(times) < 0)) {
+      stop("times must be a nonempty, nonnegative, nondecreasing finite numeric vector",
            call. = FALSE)
     }
 
@@ -107,7 +111,11 @@ network_contact_tracing <- function(parameters, I0, times) {
     release_tracing <- add_contact_tracing_transitions(sim, network, gamma, tau, theta, p)
     on.exit(release_tracing(), add = TRUE)
 
-    result = sim$run(times)
+    # ABM starts its clock at the first supplied time. Always initialize at
+    # zero, even when the caller only requests later observations.
+    later_observations <- times[1] > 0
+    result <- sim$run(if (later_observations) c(0, times) else times)
+    if (later_observations) result <- result[-1, , drop = FALSE]
     setNames(as.numeric(result$I), as.character(result$times))
   })
 }
