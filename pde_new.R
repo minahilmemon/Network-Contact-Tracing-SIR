@@ -253,36 +253,12 @@ script_arg <- grep('^--file=',commandArgs(),value=TRUE)
 out_dir <- if(length(script_arg)) dirname(normalizePath(sub('^--file=','',script_arg[1]))) else getwd()
 prefix <- file.path(out_dir,paste0('PDE_contact_tracing_dt',format(dt,trim=TRUE,scientific=FALSE)))
 write.csv(results,paste0(prefix,'.csv'),row.names=FALSE)
-plot_result <- function() {
-  plot(times,I_total,type='l',lwd=2,col='#166678',
-       xlab='Time',ylab='Number infectious',
-       main=sprintf('Contact-tracing PDE: exploratory grid dt = da = %.1f',dt))
-  abm_file <- file.path(out_dir,'It_p030_all_neighbors.csv')
-  if(file.exists(abm_file)) {
-    abm <- read.csv(abm_file)
-    if('t' %in% names(abm) && ncol(abm)>1) {
-      values <- abm[,setdiff(names(abm),'t'),drop=FALSE]
-      if(all(vapply(values,is.numeric,logical(1)))) {
-        abm_mean <- rowMeans(values)
-        plot(range(c(times,abm$t)),range(c(0,I_total,abm_mean),finite=TRUE),
-             type='n',xlab='Time',ylab='Number infectious',main='PDE and supplied ABM data')
-        lines(times,I_total,col='#166678',lwd=2)
-        lines(abm$t,abm_mean,col='#D35D35',lwd=2,lty=2)
-        legend('topright',c('PDE (coarse grid)','ABM mean'),
-               col=c('#166678','#D35D35'),lty=c(1,2),lwd=2,bty='n')
-      }
-    }
-  }
-}
-png(paste0(prefix,'.png'),width=1400,height=850,res=150)
-plot_result()
-dev.off()
-if(interactive()) plot_result()
+# Plot saved trajectories separately with compare.R.
 cat(sprintf('\nFinished in %.1f seconds. Initial I=%.6f; peak I=%.3f at t=%.1f.\n',
             proc.time()[3]-started,I_total[1],max(I_total),times[which.max(I_total)]))
 cat(sprintf('Max traced-neighbour probability: %.6g\n',max_PT))
 cat(sprintf('Max tracked susceptible neighbour mass: %.6g\n',max_S_neighbours))
 cat(sprintf('Relative SS / II symmetry errors: %.3g / %.3g\n',symmetry_SS,symmetry_II))
 cat(sprintf('Cumulative infected mass exiting age cutoff: %.6g\n',age_outflow))
-cat('Saved:',paste0(prefix,'.csv'),'and',paste0(prefix,'.png'),'\n')
+cat('Saved:',paste0(prefix,'.csv'),'\n')
 if(age_outflow>1) warning('Non-negligible infected age outflow: increase a_max.')

@@ -201,10 +201,7 @@ run_contact_tracing_comparison <- function(runs = 1000L, workers = 8L,
     data <- data.frame(t = times, trajectories)
     write.csv(data, file = file, row.names = FALSE)
   }
-  # each column of data contains I(t) for one simulation.
-  # remove the time column then calculate an average at each time point
-  I = rowMeans(data[,-1, drop=FALSE])
-  plot(data$t, I, type="l", xlab="Time", ylab="Mean infectious individuals")
+  # Plot saved trajectories separately with compare.R.
   invisible(data)
 }
 
