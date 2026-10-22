@@ -1,0 +1,104 @@
+{
+  "predicted_growth_rate": 0.10858403294196572,
+  "parameters": {
+    "beta": 0.1,
+    "alpha": 0.15,
+    "gamma": 0.1,
+    "delta": 1.0,
+    "p": 0.3,
+    "mean_degree": 5.0,
+    "max_degree": 20
+  },
+  "initial_infected_fraction": 1e-11,
+  "fitting_window": [
+    25,
+    30
+  ],
+  "fitted_quantity": "log of mean Lambda across degree classes",
+  "full_pde": [
+    {
+      "dt": 0.4,
+      "growth_Lambda": 0.102701369918734,
+      "growth_I": 0.102702930660396,
+      "absolute_error": 0.005882663023231718,
+      "susceptible_loss": 1.08552189459488e-09,
+      "max_log_I_fit_residual": 1.09293927090967e-06
+    },
+    {
+      "dt": 0.2,
+      "growth_Lambda": 0.105695560908336,
+      "growth_I": 0.105697179864794,
+      "absolute_error": 0.002888472033629727,
+      "susceptible_loss": 1.17037546321086e-09,
+      "max_log_I_fit_residual": 1.33101951030948e-06
+    },
+    {
+      "dt": 0.1,
+      "growth_Lambda": 0.10715527590792,
+      "growth_I": 0.107156885384171,
+      "absolute_error": 0.0014287570340457273,
+      "susceptible_loss": 1.21463294977531e-09,
+      "max_log_I_fit_residual": 1.36925189551741e-06
+    },
+    {
+      "dt": 0.05,
+      "growth_Lambda": 0.107873831291641,
+      "growth_I": 0.10787543504256,
+      "absolute_error": 0.0007102016503247183,
+      "susceptible_loss": 1.23716714650612e-09,
+      "max_log_I_fit_residual": 1.38767628380322e-06
+    }
+  ],
+  "first_order_extrapolations": [
+    {
+      "coarse_dt": 0.4,
+      "fine_dt": 0.2,
+      "extrapolated_growth_rate": 0.10868975189793799,
+      "absolute_error": 0.00010571895597226433
+    },
+    {
+      "coarse_dt": 0.2,
+      "fine_dt": 0.1,
+      "extrapolated_growth_rate": 0.108614990907504,
+      "absolute_error": 3.095796553827246e-05
+    },
+    {
+      "coarse_dt": 0.1,
+      "fine_dt": 0.05,
+      "extrapolated_growth_rate": 0.10859238667536202,
+      "absolute_error": 8.353733396290752e-06
+    }
+  ],
+  "saved_finite_seed_trajectory": [
+    {
+      "start": 0,
+      "end": 5,
+      "growth_I": 0.15667289279472854,
+      "final_susceptible_fraction": 0.999101326287172
+    },
+    {
+      "start": 5,
+      "end": 10,
+      "growth_I": 0.10963464138249546,
+      "final_susceptible_fraction": 0.997885766903607
+    },
+    {
+      "start": 10,
+      "end": 15,
+      "growth_I": 0.10587672934397868,
+      "final_susceptible_fraction": 0.9958250264149691
+    },
+    {
+      "start": 15,
+      "end": 20,
+      "growth_I": 0.10412670040708859,
+      "final_susceptible_fraction": 0.992356634235088
+    },
+    {
+      "start": 20,
+      "end": 25,
+      "growth_I": 0.10168451550877596,
+      "final_susceptible_fraction": 0.986587358450608
+    }
+  ]
+}

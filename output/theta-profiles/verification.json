@@ -1,0 +1,207 @@
+{
+  "analytic_profile_error": 4.455566395434457e-12,
+  "analytic_growth_rate_error": 2.4394930520088565e-12,
+  "original_equation_diagnostics": {
+    "parameters": {
+      "beta": 0.1,
+      "alpha": 0.15,
+      "gamma": 0.1,
+      "delta": 1.0,
+      "p": 0.3,
+      "mean_degree": 5.0,
+      "max_degree": 20
+    },
+    "age_max": 100.0,
+    "tolerance": 1e-08,
+    "s": -0.4585840329419657,
+    "growth_rate": 0.10858403294196572,
+    "mean_tracing_hazard": 0.04141543884235394,
+    "kappa": 4.999994717576627,
+    "omitted_neighbour_degree_mass": 3.452135820914455e-07,
+    "normalization": 0.9999999999436326,
+    "normalization_error": 5.636735522784875e-11,
+    "endpoint_R_flux": 1.8046488989925656e-21,
+    "scalar_identity_error": 2.6656961362309643e-11,
+    "max_scaled_collocation_residual": 9.896510275751818e-09,
+    "max_direct_theta_equation_error": 2.252690221860032e-11,
+    "max_initial_slope_error": 1.8481050023666512e-12,
+    "max_pair_transport_error": 2.050748459936358e-12,
+    "max_relative_edge_symmetry_error": 5.837388459097345e-16,
+    "min_theta": -4.517665954299576e-26,
+    "max_theta": 0.12974886824190895,
+    "max_grid_S_I_T_probability_mass": 0.9999999999969947,
+    "max_sampled_S_I_T_probability_mass": 0.9999999999971816,
+    "theta_peaks": [
+      {
+        "degree": 1,
+        "peak": 0.12974886824190895,
+        "peak_age": 1.9500000000000002
+      },
+      {
+        "degree": 2,
+        "peak": 0.07128972016573652,
+        "peak_age": 2.275
+      },
+      {
+        "degree": 3,
+        "peak": 0.05377380438423928,
+        "peak_age": 2.8000000000000003
+      },
+      {
+        "degree": 4,
+        "peak": 0.04647379758528536,
+        "peak_age": 3.5
+      },
+      {
+        "degree": 5,
+        "peak": 0.043225687447161404,
+        "peak_age": 4.3
+      },
+      {
+        "degree": 6,
+        "peak": 0.04171332864711876,
+        "peak_age": 4.925000000000001
+      },
+      {
+        "degree": 7,
+        "peak": 0.040937569804703706,
+        "peak_age": 5.375
+      },
+      {
+        "degree": 8,
+        "peak": 0.040497066072383035,
+        "peak_age": 5.7
+      },
+      {
+        "degree": 9,
+        "peak": 0.040225802522472,
+        "peak_age": 5.925000000000001
+      },
+      {
+        "degree": 10,
+        "peak": 0.04004795469572822,
+        "peak_age": 6.1000000000000005
+      },
+      {
+        "degree": 11,
+        "peak": 0.03992560646246651,
+        "peak_age": 6.2250000000000005
+      },
+      {
+        "degree": 12,
+        "peak": 0.03983826003631649,
+        "peak_age": 6.3500000000000005
+      },
+      {
+        "degree": 13,
+        "peak": 0.039773915305214326,
+        "peak_age": 6.425000000000001
+      },
+      {
+        "degree": 14,
+        "peak": 0.03972534719868991,
+        "peak_age": 6.5
+      },
+      {
+        "degree": 15,
+        "peak": 0.03968793740021202,
+        "peak_age": 6.575
+      },
+      {
+        "degree": 16,
+        "peak": 0.03965856332346343,
+        "peak_age": 6.625
+      },
+      {
+        "degree": 17,
+        "peak": 0.03963516057191643,
+        "peak_age": 6.675000000000001
+      },
+      {
+        "degree": 18,
+        "peak": 0.039616219364345014,
+        "peak_age": 6.7250000000000005
+      },
+      {
+        "degree": 19,
+        "peak": 0.03960085632935648,
+        "peak_age": 6.75
+      },
+      {
+        "degree": 20,
+        "peak": 0.03958810857348127,
+        "peak_age": 6.775
+      }
+    ],
+    "continuation": [
+      {
+        "p": 0.0,
+        "nodes": 546,
+        "max_scaled_residual": 9.994080212606389e-09,
+        "s": -0.49999947181022636
+      },
+      {
+        "p": 0.09999999999999999,
+        "nodes": 558,
+        "max_scaled_residual": 9.894846959614182e-09,
+        "s": -0.48791480807891857
+      },
+      {
+        "p": 0.19999999999999998,
+        "nodes": 572,
+        "max_scaled_residual": 9.985204930053577e-09,
+        "s": -0.4741838281250827
+      },
+      {
+        "p": 0.3,
+        "nodes": 594,
+        "max_scaled_residual": 9.896510275751818e-09,
+        "s": -0.4585840329419657
+      }
+    ]
+  },
+  "refinement": [
+    {
+      "case": "age cutoff 60",
+      "growth_rate": 0.10858403294178631,
+      "max_theta_change": 1.554063139555523e-08,
+      "growth_rate_change": 1.794120407794253e-13,
+      "nodes": 514
+    },
+    {
+      "case": "age cutoff 140",
+      "growth_rate": 0.10858403294196572,
+      "max_theta_change": 7.014545750749342e-13,
+      "growth_rate_change": 0.0,
+      "nodes": 674
+    },
+    {
+      "case": "tolerance 1e-9",
+      "growth_rate": 0.10858403291347463,
+      "max_theta_change": 1.1055945135091116e-10,
+      "growth_rate_change": 2.849109836944308e-11,
+      "nodes": 1182
+    },
+    {
+      "case": "initial spacing 0.2",
+      "growth_rate": 0.1085840329412,
+      "max_theta_change": 1.424158067950959e-10,
+      "growth_rate_change": 7.657208200839705e-13,
+      "nodes": 797
+    },
+    {
+      "case": "single tracing continuation step",
+      "growth_rate": 0.10858403294194219,
+      "max_theta_change": 6.687705944585787e-13,
+      "growth_rate_change": 2.353672812205332e-14,
+      "nodes": 595
+    },
+    {
+      "case": "degree cutoff 30",
+      "growth_rate": 0.10858450572303946,
+      "max_theta_change": 5.639561259651593e-08,
+      "growth_rate_change": 4.7278107373482925e-07,
+      "nodes": 603
+    }
+  ]
+}
